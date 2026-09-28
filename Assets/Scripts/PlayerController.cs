@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerController : MonoBehaviour
@@ -9,7 +10,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float groundCheckDistance = 0.15f;
 
     private Rigidbody rb;
-    private Vector3 moveInput;
+    private Vector2 moveInput;
 
     void Awake()
     {
@@ -18,11 +19,22 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        float x = Input.GetAxisRaw("Horizontal");
-        float z = Input.GetAxisRaw("Vertical");
-        moveInput = (transform.right * x + transform.forward * z).normalized;
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null) return;
 
-        if (Input.GetKeyDown(KeyCode.Space) && IsGrounded())
+        // WASD
+        moveInput = Vector2.zero;
+        if (keyboard.wKey.isPressed) moveInput.y = 1;
+        if (keyboard.sKey.isPressed) moveInput.y = -1;
+        if (keyboard.aKey.isPressed) moveInput.x = -1;
+        if (keyboard.dKey.isPressed) moveInput.x = 1;
+
+        // Normalize so diagonal isn't faster
+        if (moveInput.magnitude > 1f)
+            moveInput.Normalize();
+
+        // Jump
+        if (keyboard.spaceKey.wasPressedThisFrame && IsGrounded())
         {
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
         }
@@ -30,7 +42,7 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
-        Vector3 targetVelocity = moveInput * moveSpeed;
+        Vector3 targetVelocity = (transform.right * moveInput.x + transform.forward * moveInput.y) * moveSpeed;
         targetVelocity.y = rb.velocity.y;
         rb.velocity = targetVelocity;
     }
